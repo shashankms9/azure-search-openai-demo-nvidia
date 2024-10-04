@@ -41,6 +41,21 @@
     "documentIntelligenceResourceGroupName": {
       "value": "${AZURE_DOCUMENTINTELLIGENCE_RESOURCE_GROUP}"
     },
+    "nvidiaNimEnabled": {
+      "value": "${NVIDIA_NIM_ENABLED}"
+    },
+    "nvidiaNimEndpoint": {
+      "value": "${NVIDIA_NIM_ENDPOINT}"
+    },
+    "nvidiaNimApiKey": {
+      "value": "${NVIDIA_NIM_API_KEY}"
+    },
+    "nvidiaNimModelName": {
+      "value": "${NVIDIA_NIM_MODEL_NAME}"
+    },
+    "nvidiaNimDeploymentName": {
+      "value": "${NVIDIA_NIM_DEPLOYMENT_NAME}"
+    },
     "documentIntelligenceSkuName": {
       "value": "${AZURE_DOCUMENTINTELLIGENCE_SKU=S0}"
     },

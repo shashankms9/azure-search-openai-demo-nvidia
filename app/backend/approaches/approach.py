@@ -100,6 +100,8 @@ class Approach(ABC):
         self,
         search_client: SearchClient,
         openai_client: AsyncOpenAI,
+        nim_openai_client: AsyncOpenAI,
+        nim_model_name: str,
         auth_helper: AuthenticationHelper,
         query_language: Optional[str],
         query_speller: Optional[str],
@@ -112,6 +114,7 @@ class Approach(ABC):
     ):
         self.search_client = search_client
         self.openai_client = openai_client
+        self.nim_openai_client = nim_openai_client
         self.auth_helper = auth_helper
         self.query_language = query_language
         self.query_speller = query_speller

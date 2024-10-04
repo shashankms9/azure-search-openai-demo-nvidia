@@ -43,6 +43,8 @@ info4.pdf: In-network institutions include Overlake, Swedish and others in the r
         search_client: SearchClient,
         auth_helper: AuthenticationHelper,
         openai_client: AsyncOpenAI,
+        nim_openai_client: Optional[AsyncOpenAI],
+        nim_model_name: Optional[str],
         chatgpt_model: str,
         chatgpt_deployment: Optional[str],  # Not needed for non-Azure OpenAI
         embedding_model: str,
@@ -56,6 +58,8 @@ info4.pdf: In-network institutions include Overlake, Swedish and others in the r
         self.search_client = search_client
         self.chatgpt_deployment = chatgpt_deployment
         self.openai_client = openai_client
+        self.nim_openai_client = nim_openai_client
+        self.nim_model_name = nim_model_name
         self.auth_helper = auth_helper
         self.chatgpt_model = chatgpt_model
         self.embedding_model = embedding_model
@@ -78,6 +82,19 @@ info4.pdf: In-network institutions include Overlake, Swedish and others in the r
         if not isinstance(q, str):
             raise ValueError("The most recent message content must be a string.")
         overrides = context.get("overrides", {})
+        use_nvidia_nim = overrides.get("use_nvidia_nim", False)
+        print(f"use_nvidia_nim: {use_nvidia_nim}")
+        print(f"self.nim_openai_client: {self.nim_openai_client}")
+        if use_nvidia_nim and self.nim_openai_client:
+            active_openai_client = self.nim_openai_client
+            active_model = self.nim_model_name
+        else:
+            active_openai_client = self.openai_client
+            active_model = self.chatgpt_deployment if self.chatgpt_deployment else self.chatgpt_model
+
+
+        print(f"Active OpenAI client: {active_openai_client}")
+        print(f"Active model: {active_model}") 
         seed = overrides.get("seed", None)
         auth_claims = context.get("auth_claims", {})
         use_text_search = overrides.get("retrieval_mode") in ["text", "hybrid", None]
@@ -123,10 +140,13 @@ info4.pdf: In-network institutions include Overlake, Swedish and others in the r
             max_tokens=self.chatgpt_token_limit - response_token_limit,
             fallback_to_default=self.ALLOW_NON_GPT_MODELS,
         )
-
-        chat_completion = await self.openai_client.chat.completions.create(
+        print(f"Active model: {active_model}")
+        print(f"active_openai_client: {active_openai_client}")
+        print(f"openai_client: {self.openai_client}")
+        print(f"nim_openai_client: {self.nim_openai_client}")
+        chat_completion = await active_openai_client.chat.completions.create(
             # Azure OpenAI takes the deployment name as the model name
-            model=self.chatgpt_deployment if self.chatgpt_deployment else self.chatgpt_model,
+            model=active_model,
             messages=updated_messages,
             temperature=overrides.get("temperature", 0.3),
             max_tokens=response_token_limit,

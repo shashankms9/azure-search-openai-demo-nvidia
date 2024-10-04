@@ -19,6 +19,7 @@ This solution's backend is written in Python. There are also [**JavaScript**](ht
   - [Sharing environments](#sharing-environments)
 - [Running locally](#running-locally)
 - [Using the app](#using-the-app)
+- [Using with NVIDIA NIM](/docs/deploy_nvidia_nim.md)
 - [Clean up](#clean-up)
 - [Guidance](#guidance)
   - [Customizing the UI and data](#customizing-the-ui-and-data)
@@ -26,6 +27,7 @@ This solution's backend is written in Python. There are also [**JavaScript**](ht
   - [Productionizing](#productionizing)
   - [Troubleshooting](#troubleshooting)
   - [Resources](#resources)
+  
 
 ![Chat screen](docs/images/chatscreen.png)
 
@@ -45,6 +47,8 @@ The repo includes sample data so it's ready to try end to end. In this sample ap
 - Optional addition of [speech input/output](/docs/deploy_features.md#enabling-speech-inputoutput) for accessibility
 - Optional automation of [user login and data access](/docs/login_and_acl.md) via Microsoft Entra
 - Performance tracing and monitoring with Application Insights
+- Support for NVIDIA NIM: [Using with NVIDIA NIM](/docs/deploy_nvidia_nim.md)
+
 
 ### Architecture Diagram
 

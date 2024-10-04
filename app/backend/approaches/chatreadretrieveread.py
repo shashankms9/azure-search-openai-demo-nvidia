@@ -29,6 +29,8 @@ class ChatReadRetrieveReadApproach(ChatApproach):
         search_client: SearchClient,
         auth_helper: AuthenticationHelper,
         openai_client: AsyncOpenAI,
+        nim_openai_client: Optional[AsyncOpenAI],
+        nim_model_name: Optional[str],
         chatgpt_model: str,
         chatgpt_deployment: Optional[str],  # Not needed for non-Azure OpenAI
         embedding_deployment: Optional[str],  # Not needed for non-Azure OpenAI or for retrieval_mode="text"
@@ -41,6 +43,8 @@ class ChatReadRetrieveReadApproach(ChatApproach):
     ):
         self.search_client = search_client
         self.openai_client = openai_client
+        self.nim_openai_client = nim_openai_client
+        self.nim_model_name = nim_model_name
         self.auth_helper = auth_helper
         self.chatgpt_model = chatgpt_model
         self.chatgpt_deployment = chatgpt_deployment
@@ -89,6 +93,21 @@ class ChatReadRetrieveReadApproach(ChatApproach):
         should_stream: bool = False,
     ) -> tuple[dict[str, Any], Coroutine[Any, Any, Union[ChatCompletion, AsyncStream[ChatCompletionChunk]]]]:
         seed = overrides.get("seed", None)
+        use_nvidia_nim = overrides.get("use_nvidia_nim", False)
+        print(f"use_nvidia_nim: {use_nvidia_nim}")
+        print(f"self.nim_openai_client: {self.nim_openai_client}")
+        if use_nvidia_nim and self.nim_openai_client:
+            active_openai_client = self.nim_openai_client
+            active_model = self.nim_model_name
+        else:
+            active_openai_client = self.openai_client
+            active_model = self.chatgpt_deployment if self.chatgpt_deployment else self.chatgpt_model
+
+
+        print(f"Active OpenAI client: {active_openai_client}")
+        print(f"Active model: {active_model}")
+
+
         use_text_search = overrides.get("retrieval_mode") in ["text", "hybrid", None]
         use_vector_search = overrides.get("retrieval_mode") in ["vectors", "hybrid", None]
         use_semantic_ranker = True if overrides.get("semantic_ranker") else False
@@ -135,11 +154,14 @@ class ChatReadRetrieveReadApproach(ChatApproach):
             max_tokens=self.chatgpt_token_limit - query_response_token_limit,
             fallback_to_default=self.ALLOW_NON_GPT_MODELS,
         )
-
-        chat_completion: ChatCompletion = await self.openai_client.chat.completions.create(
+        print(f"Active model: {active_model}")
+        print(f"active_openai_client: {active_openai_client}")
+        print(f"openai_client: {self.openai_client}")
+        print(f"nim_openai_client: {self.nim_openai_client}")
+        chat_completion: ChatCompletion = await active_openai_client.chat.completions.create(
             messages=query_messages,  # type: ignore
             # Azure OpenAI takes the deployment name as the model name
-            model=self.chatgpt_deployment if self.chatgpt_deployment else self.chatgpt_model,
+            model=active_model,
             temperature=0.0,  # Minimize creativity for search query generation
             max_tokens=query_response_token_limit,  # Setting too low risks malformed JSON, setting too high may affect performance
             n=1,
@@ -232,10 +254,13 @@ class ChatReadRetrieveReadApproach(ChatApproach):
                 ),
             ],
         }
-
-        chat_coroutine = self.openai_client.chat.completions.create(
+        print(f"Active model: {active_model}")
+        print(f"active_openai_client: {active_openai_client}")
+        print(f"openai_client: {self.openai_client}")
+        print(f"nim_openai_client: {self.nim_openai_client}")
+        chat_coroutine = active_openai_client.chat.completions.create(
             # Azure OpenAI takes the deployment name as the model name
-            model=self.chatgpt_deployment if self.chatgpt_deployment else self.chatgpt_model,
+            model=active_model,
             messages=messages,
             temperature=overrides.get("temperature", 0.3),
             max_tokens=response_token_limit,

@@ -53,6 +53,12 @@ export function Component(): JSX.Element {
     const [showSpeechOutputAzure, setShowSpeechOutputAzure] = useState<boolean>(false);
     const audio = useRef(new Audio()).current;
     const [isPlaying, setIsPlaying] = useState(false);
+    const [showNvidiaNim, setShowNvidiaNim] = useState<boolean>(false);
+    const [useNvidiaNimAsk, setuseNvidiaNimAsk] = useState<boolean>(() => {
+        // Initialize from localStorage, defaulting to false if not set
+        const savedValue = localStorage.getItem("useNvidiaNimAsk");
+        return savedValue ? JSON.parse(savedValue) : false;
+    });
 
     const lastQuestionRef = useRef<string>("");
 
@@ -90,8 +96,22 @@ export function Component(): JSX.Element {
             setShowSpeechInput(config.showSpeechInput);
             setShowSpeechOutputBrowser(config.showSpeechOutputBrowser);
             setShowSpeechOutputAzure(config.showSpeechOutputAzure);
+            setShowNvidiaNim(config.showNvidiaNim);
+            console.log("showNvidiaNim set to:", config.showNvidiaNim);
         });
     };
+    const useNvidiaNimAskId = useId("useNvidiaNimAsk");
+    const useNvidiaNimAskFieldId = useId("useNvidiaNimAskField");
+
+    // ... existing code ...
+
+    const onuseNvidiaNimAskChange = (_ev?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
+        const newValue = !!checked;
+        setuseNvidiaNimAsk(newValue);
+        localStorage.setItem("useNvidiaNimAsk", JSON.stringify(newValue));
+    };
+
+    // ... rest of the component ...
 
     useEffect(() => {
         getConfig();
@@ -134,6 +154,7 @@ export function Component(): JSX.Element {
                         use_gpt4v: useGPT4V,
                         gpt4v_input: gpt4vInput,
                         language: i18n.language,
+                        use_nvidia_nim: useNvidiaNimAsk,
                         ...(seed !== null ? { seed: seed } : {})
                     }
                 },
@@ -311,6 +332,24 @@ export function Component(): JSX.Element {
                 onRenderFooterContent={() => <DefaultButton onClick={() => setIsConfigPanelOpen(false)}>{t("labels.closeButton")}</DefaultButton>}
                 isFooterAtBottom={true}
             >
+                {showNvidiaNim && (
+                    <Checkbox
+                        id={useNvidiaNimAskFieldId}
+                        className={styles.chatSettingsSeparator}
+                        checked={useNvidiaNimAsk}
+                        label={t("labels.useNvidiaNim")}
+                        onChange={onuseNvidiaNimAskChange}
+                        aria-labelledby={useNvidiaNimAskId}
+                        onRenderLabel={(props: ICheckboxProps | undefined) => (
+                            <HelpCallout
+                                labelId={useNvidiaNimAskId}
+                                fieldId={useNvidiaNimAskFieldId}
+                                helpText={t("helpTexts.useNvidiaNim")}
+                                label={props?.label}
+                            />
+                        )}
+                    />
+                )}
                 <TextField
                     id={promptTemplateFieldId}
                     className={styles.chatSettingsSeparator}

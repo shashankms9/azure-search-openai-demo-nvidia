@@ -59,6 +59,12 @@ param speechServiceName string = ''
 param speechServiceSkuName string // Set in main.parameters.json
 param useGPT4V bool = false
 
+param nvidiaNimEnabled bool = false
+param nvidiaNimEndpoint string = ''
+param nvidiaNimApiKey string = ''  
+param nvidiaNimModelName string = ''
+param nvidiaNimDeploymentName string = ''
+
 @description('Location for the OpenAI resource group')
 @allowed([
   'canadaeast'
@@ -331,6 +337,13 @@ var appEnvVariables = {
   // Used only with non-Azure OpenAI deployments
   OPENAI_API_KEY: openAiApiKey
   OPENAI_ORGANIZATION: openAiApiOrganization
+
+  //NVIDIA NIM related environment variables
+  NVIDIA_NIM_ENABLED: nvidiaNimEnabled
+  NVIDIA_NIM_ENDPOINT: nvidiaNimEndpoint
+  NVIDIA_NIM_API_KEY: nvidiaNimApiKey
+  NVIDIA_NIM_MODEL_NAME: nvidiaNimModelName
+  NVIDIA_NIM_DEPLOYMENT_NAME: nvidiaNimDeploymentName   
   // Optional login and document level access control system
   AZURE_USE_AUTHENTICATION: useAuthentication
   AZURE_ENFORCE_ACCESS_CONTROL: enforceAccessControl
@@ -763,7 +776,9 @@ module openAiRoleSearchService 'core/security/role.bicep' = if (isAzureOpenAiHos
   scope: openAiResourceGroup
   name: 'openai-role-searchservice'
   params: {
-    principalId: searchService.outputs.principalId
+    principalId: (deploymentTarget == 'appservice')
+      ? backend.outputs.identityPrincipalId
+      : acaBackend.outputs.identityPrincipalId
     roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
     principalType: 'ServicePrincipal'
   }
@@ -797,7 +812,9 @@ module storageRoleSearchService 'core/security/role.bicep' = if (useIntegratedVe
   scope: storageResourceGroup
   name: 'storage-role-searchservice'
   params: {
-    principalId: searchService.outputs.principalId
+    principalId: (deploymentTarget == 'appservice')
+      ? backend.outputs.identityPrincipalId
+      : acaBackend.outputs.identityPrincipalId
     roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
     principalType: 'ServicePrincipal'
   }
@@ -966,6 +983,12 @@ output AZURE_OPENAI_RESOURCE_GROUP string = isAzureOpenAiHost ? openAiResourceGr
 output AZURE_OPENAI_CHATGPT_DEPLOYMENT string = isAzureOpenAiHost ? chatGpt.deploymentName : ''
 output AZURE_OPENAI_EMB_DEPLOYMENT string = isAzureOpenAiHost ? embedding.deploymentName : ''
 output AZURE_OPENAI_GPT4V_DEPLOYMENT string = isAzureOpenAiHost ? gpt4vDeploymentName : ''
+
+output NVIDIA_NIM_ENABLED bool = nvidiaNimEnabled
+output NVIDIA_NIM_ENDPOINT string = nvidiaNimEndpoint
+output NVIDIA_NIM_API_KEY string = nvidiaNimApiKey
+output NVIDIA_NIM_MODEL_NAME string = nvidiaNimModelName
+output NVIDIA_NIM_DEPLOYMENT_NAME string = nvidiaNimDeploymentName
 
 output AZURE_SPEECH_SERVICE_ID string = useSpeechOutputAzure ? speech.outputs.resourceId : ''
 output AZURE_SPEECH_SERVICE_LOCATION string = useSpeechOutputAzure ? speech.outputs.location : ''
