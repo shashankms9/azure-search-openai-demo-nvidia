@@ -222,7 +222,7 @@ class ChatReadRetrieveReadApproach(ChatApproach):
                     "Prompt to generate search query",
                     query_messages,
                     (
-                        {"model": self.chatgpt_model, "deployment": self.chatgpt_deployment}
+                        {"model": active_model}
                         if self.chatgpt_deployment
                         else {"model": self.chatgpt_model}
                     ),
@@ -247,7 +247,7 @@ class ChatReadRetrieveReadApproach(ChatApproach):
                     "Prompt to generate answer",
                     messages,
                     (
-                        {"model": self.chatgpt_model, "deployment": self.chatgpt_deployment}
+                        {"model": active_model}
                         if self.chatgpt_deployment
                         else {"model": self.chatgpt_model}
                     ),

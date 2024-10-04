@@ -178,7 +178,7 @@ info4.pdf: In-network institutions include Overlake, Swedish and others in the r
                     "Prompt to generate answer",
                     updated_messages,
                     (
-                        {"model": self.chatgpt_model, "deployment": self.chatgpt_deployment}
+                        {"model": active_model}
                         if self.chatgpt_deployment
                         else {"model": self.chatgpt_model}
                     ),
