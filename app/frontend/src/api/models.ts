@@ -36,6 +36,7 @@ export type ChatAppRequestOverrides = {
     gpt4v_input?: GPT4VInput;
     vector_fields: VectorFieldOptions[];
     language: string;
+    use_nvidia_nim?: boolean;
 };
 
 export type ResponseMessage = {
@@ -89,6 +90,7 @@ export type Config = {
     showSpeechInput: boolean;
     showSpeechOutputBrowser: boolean;
     showSpeechOutputAzure: boolean;
+    showNvidiaNim: boolean;
 };
 
 export type SimpleAPIResponse = {

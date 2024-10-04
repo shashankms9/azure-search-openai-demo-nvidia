@@ -65,6 +65,7 @@ from config import (
     CONFIG_INGESTER,
     CONFIG_LANGUAGE_PICKER_ENABLED,
     CONFIG_OPENAI_CLIENT,
+    CONFIG_NIM_OPENAI_CLIENT,
     CONFIG_SEARCH_CLIENT,
     CONFIG_SEMANTIC_RANKER_DEPLOYED,
     CONFIG_SPEECH_INPUT_ENABLED,
@@ -77,6 +78,11 @@ from config import (
     CONFIG_USER_BLOB_CONTAINER_CLIENT,
     CONFIG_USER_UPLOAD_ENABLED,
     CONFIG_VECTOR_SEARCH_ENABLED,
+    CONFIG_NVIDIA_NIM_ENABLED,
+    CONFIG_NVIDIA_NIM_ENDPOINT,
+    CONFIG_NVIDIA_NIM_API_KEY,
+    CONFIG_NVIDIA_NIM_MODEL_NAME,
+    CONFIG_NVIDIA_NIM_DEPLOYMENT_NAME,
 )
 from core.authentication import AuthenticationHelper
 from decorators import authenticated, authenticated_path
@@ -170,14 +176,19 @@ async def ask(auth_claims: Dict[str, Any]):
         return jsonify({"error": "request must be json"}), 415
     request_json = await request.get_json()
     context = request_json.get("context", {})
+    overrides = context.get("overrides", {})
+    use_nvidia_nim = overrides.get("use_nvidia_nim", False)
+    current_app.logger.info("use_nvidia_nim: %s", use_nvidia_nim)
     context["auth_claims"] = auth_claims
     try:
         use_gpt4v = context.get("overrides", {}).get("use_gpt4v", False)
         approach: Approach
         if use_gpt4v and CONFIG_ASK_VISION_APPROACH in current_app.config:
             approach = cast(Approach, current_app.config[CONFIG_ASK_VISION_APPROACH])
+            current_app.logger.info("config_ask_vision_approach: %s", current_app.config[CONFIG_ASK_VISION_APPROACH])
         else:
             approach = cast(Approach, current_app.config[CONFIG_ASK_APPROACH])
+            current_app.logger.info("config_ask_approach: %s", current_app.config[CONFIG_ASK_APPROACH])
         r = await approach.run(
             request_json["messages"], context=context, session_state=request_json.get("session_state")
         )
@@ -209,15 +220,20 @@ async def chat(auth_claims: Dict[str, Any]):
         return jsonify({"error": "request must be json"}), 415
     request_json = await request.get_json()
     context = request_json.get("context", {})
+    overrides = context.get("overrides", {})
+    use_nvidia_nim = overrides.get("use_nvidia_nim", False)
+    current_app.logger.info("use_nvidia_nim: %s", use_nvidia_nim)
+
     context["auth_claims"] = auth_claims
     try:
         use_gpt4v = context.get("overrides", {}).get("use_gpt4v", False)
         approach: Approach
         if use_gpt4v and CONFIG_CHAT_VISION_APPROACH in current_app.config:
             approach = cast(Approach, current_app.config[CONFIG_CHAT_VISION_APPROACH])
+            current_app.logger.info("config_chat_vision_approach: %s", current_app.config[CONFIG_CHAT_VISION_APPROACH])
         else:
             approach = cast(Approach, current_app.config[CONFIG_CHAT_APPROACH])
-
+            current_app.logger.info("config_chat_approach: %s", current_app.config[CONFIG_CHAT_APPROACH])
         result = await approach.run(
             request_json["messages"],
             context=context,
@@ -235,14 +251,19 @@ async def chat_stream(auth_claims: Dict[str, Any]):
         return jsonify({"error": "request must be json"}), 415
     request_json = await request.get_json()
     context = request_json.get("context", {})
+    overrides = context.get("overrides", {})
+    use_nvidia_nim = overrides.get("use_nvidia_nim", False)
+    current_app.logger.info("use_nvidia_nim: %s", use_nvidia_nim)
     context["auth_claims"] = auth_claims
     try:
         use_gpt4v = context.get("overrides", {}).get("use_gpt4v", False)
         approach: Approach
         if use_gpt4v and CONFIG_CHAT_VISION_APPROACH in current_app.config:
             approach = cast(Approach, current_app.config[CONFIG_CHAT_VISION_APPROACH])
+            current_app.logger.info("config_chat_vision_approach: %s", current_app.config[CONFIG_CHAT_VISION_APPROACH])
         else:
             approach = cast(Approach, current_app.config[CONFIG_CHAT_APPROACH])
+            current_app.logger.info("config_chat_approach: %s", current_app.config[CONFIG_CHAT_APPROACH])
 
         result = await approach.run_stream(
             request_json["messages"],
@@ -266,6 +287,7 @@ def auth_setup():
 
 @bp.route("/config", methods=["GET"])
 def config():
+    current_app.logger.info("Retriving Current app config")
     return jsonify(
         {
             "showGPT4VOptions": current_app.config[CONFIG_GPT4V_DEPLOYED],
@@ -276,6 +298,7 @@ def config():
             "showSpeechInput": current_app.config[CONFIG_SPEECH_INPUT_ENABLED],
             "showSpeechOutputBrowser": current_app.config[CONFIG_SPEECH_OUTPUT_BROWSER_ENABLED],
             "showSpeechOutputAzure": current_app.config[CONFIG_SPEECH_OUTPUT_AZURE_ENABLED],
+            "showNvidiaNim": current_app.config[CONFIG_NVIDIA_NIM_ENABLED],
         }
     )
 
@@ -422,6 +445,12 @@ async def setup_clients():
     AZURE_CLIENT_APP_ID = os.getenv("AZURE_CLIENT_APP_ID")
     AZURE_AUTH_TENANT_ID = os.getenv("AZURE_AUTH_TENANT_ID", AZURE_TENANT_ID)
 
+    NVIDIA_NIM_ENABLED = os.getenv("NVIDIA_NIM_ENABLED", "false")
+    NVIDIA_NIM_ENDPOINT = os.getenv("NVIDIA_NIM_ENDPOINT")
+    NVIDIA_NIM_API_KEY = os.getenv("NVIDIA_NIM_API_KEY")
+    NVIDIA_NIM_MODEL_NAME = os.getenv("NVIDIA_NIM_MODEL_NAME")
+    NVIDIA_NIM_DEPLOYMENT_NAME = os.getenv("NVIDIA_NIM_DEPLOYMENT_NAME")
+
     KB_FIELDS_CONTENT = os.getenv("KB_FIELDS_CONTENT", "content")
     KB_FIELDS_SOURCEPAGE = os.getenv("KB_FIELDS_SOURCEPAGE", "sourcepage")
 
@@ -468,6 +497,8 @@ async def setup_clients():
         current_app.logger.info("Setting up Azure credential using AzureDeveloperCliCredential for home tenant")
         azure_credential = AzureDeveloperCliCredential(process_timeout=60)
 
+
+    
     # Set up clients for AI Search and Storage
     search_client = SearchClient(
         endpoint=f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
@@ -544,7 +575,7 @@ async def setup_clients():
 
     # Used by the OpenAI SDK
     openai_client: AsyncOpenAI
-
+    nim_openai_client: AsyncOpenAI
     if USE_SPEECH_OUTPUT_AZURE:
         current_app.logger.info("USE_SPEECH_OUTPUT_AZURE is true, setting up Azure speech service")
         if not AZURE_SPEECH_SERVICE_ID or AZURE_SPEECH_SERVICE_ID == "":
@@ -596,10 +627,31 @@ async def setup_clients():
             organization=OPENAI_ORGANIZATION,
         )
 
+    current_app.logger.info("Setting up clients for NVIDIA NIM")
+
+    if NVIDIA_NIM_ENABLED:
+        current_app.logger.info("NVIDIA NIM is enabled, setting up NVIDIA NIM client")
+        nim_openai_client = AsyncOpenAI(
+            base_url=NVIDIA_NIM_ENDPOINT,
+            api_key=NVIDIA_NIM_API_KEY,
+            default_headers={"azureml-model-deployment": NVIDIA_NIM_DEPLOYMENT_NAME},
+        )
+        current_app.logger.info("NVIDIA NIM client setup successfully")
+    else:
+        current_app.logger.info("NVIDIA NIM is not enabled")
+
     current_app.config[CONFIG_OPENAI_CLIENT] = openai_client
+    current_app.config[CONFIG_NIM_OPENAI_CLIENT] = nim_openai_client
+
     current_app.config[CONFIG_SEARCH_CLIENT] = search_client
     current_app.config[CONFIG_BLOB_CONTAINER_CLIENT] = blob_container_client
     current_app.config[CONFIG_AUTH_CLIENT] = auth_helper
+
+    current_app.config[CONFIG_NVIDIA_NIM_ENABLED] = bool(NVIDIA_NIM_ENABLED)
+    current_app.config[CONFIG_NVIDIA_NIM_ENDPOINT] = NVIDIA_NIM_ENDPOINT
+    current_app.config[CONFIG_NVIDIA_NIM_API_KEY] = NVIDIA_NIM_API_KEY
+    current_app.config[CONFIG_NVIDIA_NIM_MODEL_NAME] = NVIDIA_NIM_MODEL_NAME
+    current_app.config[CONFIG_NVIDIA_NIM_DEPLOYMENT_NAME] = NVIDIA_NIM_DEPLOYMENT_NAME
 
     current_app.config[CONFIG_GPT4V_DEPLOYED] = bool(USE_GPT4V)
     current_app.config[CONFIG_SEMANTIC_RANKER_DEPLOYED] = AZURE_SEARCH_SEMANTIC_RANKER != "disabled"
@@ -615,6 +667,8 @@ async def setup_clients():
     current_app.config[CONFIG_ASK_APPROACH] = RetrieveThenReadApproach(
         search_client=search_client,
         openai_client=openai_client,
+        nim_openai_client=nim_openai_client,
+        nim_model_name=NVIDIA_NIM_MODEL_NAME,
         auth_helper=auth_helper,
         chatgpt_model=OPENAI_CHATGPT_MODEL,
         chatgpt_deployment=AZURE_OPENAI_CHATGPT_DEPLOYMENT,
@@ -630,6 +684,8 @@ async def setup_clients():
     current_app.config[CONFIG_CHAT_APPROACH] = ChatReadRetrieveReadApproach(
         search_client=search_client,
         openai_client=openai_client,
+        nim_openai_client=nim_openai_client,
+        nim_model_name=NVIDIA_NIM_MODEL_NAME,
         auth_helper=auth_helper,
         chatgpt_model=OPENAI_CHATGPT_MODEL,
         chatgpt_deployment=AZURE_OPENAI_CHATGPT_DEPLOYMENT,

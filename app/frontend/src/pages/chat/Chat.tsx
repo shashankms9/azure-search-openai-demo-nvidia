@@ -56,6 +56,12 @@ const Chat = () => {
     const [useGroupsSecurityFilter, setUseGroupsSecurityFilter] = useState<boolean>(false);
     const [gpt4vInput, setGPT4VInput] = useState<GPT4VInput>(GPT4VInput.TextAndImages);
     const [useGPT4V, setUseGPT4V] = useState<boolean>(false);
+    const [useNvidiaNimChat, setuseNvidiaNimChat] = useState<boolean>(() => {
+        // Initialize from localStorage, defaulting to false if not set
+        const savedValue = localStorage.getItem("useNvidiaNimChat");
+        return savedValue ? JSON.parse(savedValue) : false;
+    });
+    const [showNvidiaNim, setShowNvidiaNim] = useState<boolean>(false);
 
     const lastQuestionRef = useRef<string>("");
     const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
@@ -82,7 +88,8 @@ const Chat = () => {
     const [showSpeechOutputAzure, setShowSpeechOutputAzure] = useState<boolean>(false);
     const audio = useRef(new Audio()).current;
     const [isPlaying, setIsPlaying] = useState(false);
-
+    const useNvidiaNimChatId = useId("useNvidiaNimChat");
+    const useNvidiaNimChatFieldId = useId("useNvidiaNimChatField");
     const speechConfig: SpeechConfig = {
         speechUrls,
         setSpeechUrls,
@@ -105,9 +112,15 @@ const Chat = () => {
             setShowSpeechInput(config.showSpeechInput);
             setShowSpeechOutputBrowser(config.showSpeechOutputBrowser);
             setShowSpeechOutputAzure(config.showSpeechOutputAzure);
+            setShowNvidiaNim(config.showNvidiaNim);
+            console.log("showNvidiaNim: ", config.showNvidiaNim);
         });
     };
-
+    const onuseNvidiaNimChatChange = (_ev?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
+        const newValue = !!checked;
+        setuseNvidiaNimChat(newValue);
+        localStorage.setItem("useNvidiaNimChat", JSON.stringify(newValue));
+    };
     const handleAsyncRequest = async (question: string, answers: [string, ChatAppResponse][], responseBody: ReadableStream<any>) => {
         let answer: string = "";
         let askResponse: ChatAppResponse = {} as ChatAppResponse;
@@ -190,6 +203,7 @@ const Chat = () => {
                         use_gpt4v: useGPT4V,
                         gpt4v_input: gpt4vInput,
                         language: i18n.language,
+                        use_nvidia_nim: useNvidiaNimChat,
                         ...(seed !== null ? { seed: seed } : {})
                     }
                 },
@@ -467,6 +481,24 @@ const Chat = () => {
                     onRenderFooterContent={() => <DefaultButton onClick={() => setIsConfigPanelOpen(false)}>{t("labels.closeButton")}</DefaultButton>}
                     isFooterAtBottom={true}
                 >
+                    {showNvidiaNim && (
+                        <Checkbox
+                            id={useNvidiaNimChatFieldId}
+                            className={styles.chatSettingsSeparator}
+                            checked={useNvidiaNimChat}
+                            label={t("labels.useNvidiaNim")}
+                            onChange={onuseNvidiaNimChatChange}
+                            aria-labelledby={useNvidiaNimChatId}
+                            onRenderLabel={(props: ICheckboxProps | undefined) => (
+                                <HelpCallout
+                                    labelId={useNvidiaNimChatId}
+                                    fieldId={useNvidiaNimChatFieldId}
+                                    helpText={t("helpTexts.useNvidiaNim")}
+                                    label={props?.label}
+                                />
+                            )}
+                        />
+                    )}
                     <TextField
                         id={promptTemplateFieldId}
                         className={styles.chatSettingsSeparator}
