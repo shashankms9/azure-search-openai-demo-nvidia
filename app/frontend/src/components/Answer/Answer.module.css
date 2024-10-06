@@ -19,7 +19,9 @@
     padding-top: 1em;
     padding-bottom: 1em;
 }
-
+.metaModelAnswer {
+    background-color: #76B900;
+}
 .answerText h1,
 h2,
 h2 {

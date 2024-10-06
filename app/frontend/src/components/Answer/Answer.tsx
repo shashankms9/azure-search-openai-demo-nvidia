@@ -12,6 +12,7 @@ import { parseAnswerToHtml } from "./AnswerParser";
 import { AnswerIcon } from "./AnswerIcon";
 import { SpeechOutputBrowser } from "./SpeechOutputBrowser";
 import { SpeechOutputAzure } from "./SpeechOutputAzure";
+import { Thoughts } from "../../api";
 
 interface Props {
     answer: ChatAppResponse;
@@ -42,14 +43,28 @@ export const Answer = ({
     showSpeechOutputAzure,
     showSpeechOutputBrowser
 }: Props) => {
+    console.log("answer", answer);
+    console.log("answer.context.thoughts", answer.context.thoughts);
+
     const followupQuestions = answer.context?.followup_questions;
     const messageContent = answer.message.content;
     const parsedAnswer = useMemo(() => parseAnswerToHtml(messageContent, isStreaming, onCitationClicked), [answer]);
     const { t } = useTranslation();
     const sanitizedAnswerHtml = DOMPurify.sanitize(parsedAnswer.answerHtml);
+    const hasMetaModel = answer.context?.thoughts?.some((thought: Thoughts) => {
+        console.log("Checking thought:", thought);
+        if (thought.props?.model) {
+            console.log("Model found:", thought.props.model);
+            return thought.props.model.toLowerCase().includes("meta");
+        }
+        return false;
+    });
+    console.log("hasMetaModel", hasMetaModel);
 
+    const answerContainerClassName = `${styles.answerContainer} ${isSelected ? styles.selected : ""} ${hasMetaModel ? styles.metaModelAnswer : ""}`;
+    console.log("answerContainerClassName", answerContainerClassName);
     return (
-        <Stack className={`${styles.answerContainer} ${isSelected && styles.selected}`} verticalAlign="space-between">
+        <Stack className={answerContainerClassName} verticalAlign="space-between">
             <Stack.Item>
                 <Stack horizontal horizontalAlign="space-between">
                     <AnswerIcon />
