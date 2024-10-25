@@ -26,9 +26,9 @@ Please see the sample command below.
 
 - azd env set NVIDIA_NIM_API_KEY yourapitoken
 
-- azd env set NVIDIA_NIM_MODEL_NAME "meta/llama-3_1-8b-instruct"
+- azd env set NVIDIA_NIM_MODEL_NAME "meta/llama-3.1-8b-instruct"
 
-- azd env set NVIDIA_NIM_DEPLOYMENT_NAME llama31-8b-instruct-aml-1
+- azd env set NVIDIA_NIM_DEPLOYMENT_NAME llama31-8b-instruct-aml-1 #your AzureML deployment name
 
 
 ## Using the NIM
