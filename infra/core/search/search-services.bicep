@@ -33,7 +33,7 @@ param semanticSearch string = 'disabled'
 
 param sharedPrivateLinkStorageAccounts array = []
 
-var searchIdentityProvider = (sku.name == 'free') ? null : {
+var searchIdentityProvider = (sku.name == 'standard') ? null : {
   type: 'SystemAssigned'
 }
 
