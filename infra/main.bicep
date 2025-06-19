@@ -27,7 +27,7 @@ param searchIndexName string // Set in main.parameters.json
 param searchQueryLanguage string // Set in main.parameters.json
 param searchQuerySpeller string // Set in main.parameters.json
 param searchServiceSemanticRankerLevel string // Set in main.parameters.json
-var actualSearchServiceSemanticRankerLevel = (searchServiceSkuName == 'free')
+var actualSearchServiceSemanticRankerLevel = (searchServiceSkuName == 'standard')
   ? 'disabled'
   : searchServiceSemanticRankerLevel
 
