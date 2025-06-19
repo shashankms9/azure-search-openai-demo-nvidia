@@ -75,7 +75,7 @@
       "value": "${AZURE_SEARCH_SERVICE_LOCATION}"
     },
     "searchServiceSkuName": {
-      "value": "${AZURE_SEARCH_SERVICE_SKU=basic}"
+      "value": "${AZURE_SEARCH_SERVICE_SKU=standard}"
     },
     "searchQueryLanguage": {
       "value": "${AZURE_SEARCH_QUERY_LANGUAGE=en-us}"
@@ -99,7 +99,7 @@
       "value": "${AZURE_APP_SERVICE_PLAN}"
     },
     "appServiceSkuName": {
-      "value": "${AZURE_APP_SERVICE_SKU=B3}"
+      "value": "${AZURE_APP_SERVICE_SKU=s1}"
     },
     "backendServiceName": {
       "value": "${AZURE_APP_SERVICE}"
